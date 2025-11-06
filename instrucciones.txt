@@ -1,0 +1,4 @@
+
+
+correr el backend con "ruby app.rb" 
+si quieres apuntar al backend desde android estudio poner esta dirección base en el controller de tu front: "http://10.0.2.2:4567/"
