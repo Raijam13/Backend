@@ -15,10 +15,10 @@ class RegistroController < Sinatra::Base
       nombres = payload['nombres']
       apellidos = payload['apellidos']
       correo = payload['correo']
-      contraseña = payload['contraseña']
+      contrasena = payload['contrasena'] || payload['contraseña']
 
       # Validar campos obligatorios
-      if [nombres, apellidos, correo, contraseña].any? { |campo| campo.nil? || campo.strip.empty? }
+      if [nombres, apellidos, correo, contrasena].any? { |campo| campo.nil? || campo.strip.empty? }
         halt 400, { status: 'error', message: 'Todos los campos son obligatorios' }.to_json
       end
 
@@ -28,7 +28,7 @@ class RegistroController < Sinatra::Base
       end
 
       # Crear el usuario
-      id = Usuario.create(nombres, apellidos, correo, contraseña)
+      id = Usuario.create(nombres, apellidos, correo, contrasena)
 
       status 201
       {
