@@ -40,6 +40,7 @@ GEM
     tilt (2.6.1)
 
 PLATFORMS
+  arm64-darwin-25
   x64-mingw-ucrt
 
 DEPENDENCIES

@@ -16,4 +16,9 @@ class Usuario
     DB.execute(query, [nombres, apellidos, correo, contraseña])
     DB.last_insert_row_id
   end
+  
+  def self.find_by_id(id)
+    query = "SELECT * FROM Usuario WHERE id = ? LIMIT 1"
+    DB.execute(query, [id]).first
+  end
 end
