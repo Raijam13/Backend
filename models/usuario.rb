@@ -21,4 +21,22 @@ class Usuario
     query = "SELECT * FROM Usuario WHERE id = ? LIMIT 1"
     DB.execute(query, [id]).first
   end
+  
+  def self.update_partial(id, data)
+    set_clause = []
+    values = []
+
+    data.each do |campo, valor|
+      next if valor.nil? || valor.strip.empty?
+      set_clause << "#{campo} = ?"
+      values << valor
+    end
+
+    return if set_clause.empty?
+
+    query = "UPDATE Usuario SET #{set_clause.join(', ')} WHERE id = ?"
+    values << id
+    DB.execute(query, values)
+  end
+
 end

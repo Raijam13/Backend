@@ -7,38 +7,69 @@ class PerfilController < Sinatra::Base
     content_type :json
   end
 
-  # GET /perfil/:id
+  # Obtener perfil por ID
   get '/perfil/:id' do
+    id = params['id']
+    usuario = Usuario.find_by_id(id)
+
+    if usuario
+      status 200
+      {
+        status: 'ok',
+        message: 'Perfil obtenido correctamente',
+        usuario: {
+          id: usuario['id'],
+          nombres: usuario['nombres'],
+          apellidos: usuario['apellidos'],
+          correo: usuario['correo']
+        }
+      }.to_json
+    else
+      halt 404, { status: 'error', message: 'Usuario no encontrado' }.to_json
+    end
+  end
+
+  # Actualizar perfil parcial (PUT)
+  put '/perfil/:id' do
     begin
       id = params['id']
+      payload = JSON.parse(request.body.read)
 
-      # Validar que se haya enviado un ID
-      if id.nil? || id.strip.empty?
-        halt 400, { status: 'error', message: 'Debe proporcionar un ID de usuario' }.to_json
-      end
-
-      # Buscar usuario por ID
+      # Validar si el usuario existe
       usuario = Usuario.find_by_id(id)
-
-      if usuario
-        status 200
-        {
-          status: 'ok',
-          message: 'Perfil obtenido correctamente',
-          usuario: {
-            id: usuario['id'],
-            nombres: usuario['nombres'],
-            apellidos: usuario['apellidos'],
-            correo: usuario['correo']
-          }
-        }.to_json
-      else
+      unless usuario
         halt 404, { status: 'error', message: 'Usuario no encontrado' }.to_json
       end
 
+      # Filtrar solo los campos permitidos
+      campos_permitidos = %w[nombres apellidos correo contraseña]
+      data_actualizar = payload.select { |k, _| campos_permitidos.include?(k) }
+
+      if data_actualizar.empty?
+        halt 400, { status: 'error', message: 'No se enviaron campos válidos para actualizar' }.to_json
+      end
+
+      Usuario.update_partial(id, data_actualizar)
+
+      # Obtener el usuario actualizado
+      usuario_actualizado = Usuario.find_by_id(id)
+
+      status 200
+      {
+        status: 'ok',
+        message: 'Perfil actualizado correctamente',
+        usuario: {
+          id: usuario_actualizado['id'],
+          nombres: usuario_actualizado['nombres'],
+          apellidos: usuario_actualizado['apellidos'],
+          correo: usuario_actualizado['correo']
+        }
+      }.to_json
+
+    rescue JSON::ParserError
+      halt 400, { status: 'error', message: 'Formato JSON inválido' }.to_json
     rescue SQLite3::Exception => e
       halt 500, { status: 'error', message: 'Error en la base de datos', detalle: e.message }.to_json
-
     rescue => e
       halt 500, { status: 'error', message: 'Error interno del servidor', detalle: e.message }.to_json
     end
