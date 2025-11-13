@@ -21,7 +21,17 @@ class Usuario
     query = "SELECT * FROM Usuario WHERE id = ? LIMIT 1"
     DB.execute(query, [id]).first
   end
-  
+
+  def self.delete_by_id(id)
+    query = "DELETE FROM Usuario WHERE id = ?"
+    DB.execute(query, [id])
+  end
+
+  def self.delete_by_id_and_password(id, contraseña)
+    query = "DELETE FROM Usuario WHERE id = ? AND contraseña = ?"
+    DB.execute(query, [id, contraseña])
+  end
+
   def self.update_partial(id, data)
     set_clause = []
     values = []

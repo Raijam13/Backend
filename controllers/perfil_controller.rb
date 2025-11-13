@@ -29,7 +29,7 @@ class PerfilController < Sinatra::Base
     end
   end
 
-  # Actualizar perfil parcial (PUT)
+  # Actualizar perfil parcial
   put '/perfil/:id' do
     begin
       id = params['id']
