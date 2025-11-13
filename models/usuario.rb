@@ -49,4 +49,9 @@ class Usuario
     DB.execute(query, values)
   end
 
+  def self.update_imagen_perfil(id, url_imagen)
+    query = "UPDATE Usuario SET imagen_perfil = ? WHERE id = ?"
+    DB.execute(query, [url_imagen, id])
+  end
+
 end
