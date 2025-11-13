@@ -3,7 +3,7 @@ require 'sinatra/json'
 require_relative './database'
 require_relative './controllers/login_controller'
 require_relative './controllers/registro_controller'
-require_relative './controllers/reset_password_controller'
+require_relative './controllers/reset_pasword_controller'
 require_relative './controllers/perfil_controller'
 require_relative './controllers/chat_controller'
 require_relative './controllers/eliminar_controller'
@@ -17,6 +17,8 @@ use PerfilController
 use ChatController
 use EliminarController
 use ResetPasswordController
+
+
 set :bind, '0.0.0.0'
 set :port, 4567
 
