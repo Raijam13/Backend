@@ -46,6 +46,7 @@ GEM
       ethon (>= 0.9.0, < 0.16.0)
 
 PLATFORMS
+  arm64-darwin-25
   x64-mingw-ucrt
 
 DEPENDENCIES
