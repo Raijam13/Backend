@@ -2,8 +2,12 @@ GEM
   remote: https://rubygems.org/
   specs:
     base64 (0.3.0)
+    ethon (0.15.0)
+      ffi (>= 1.15.0)
+    ffi (1.17.2-x64-mingw-ucrt)
     json (2.15.2)
     logger (1.7.0)
+    mailslurp_client (17.0.0)
     mini_portile2 (2.8.9)
     multi_json (1.17.0)
     mustermann (3.0.4)
@@ -38,18 +42,22 @@ GEM
     sqlite3 (1.6.9)
       mini_portile2 (~> 2.8.0)
     tilt (2.6.1)
+    typhoeus (1.5.0)
+      ethon (>= 0.9.0, < 0.16.0)
 
 PLATFORMS
   x64-mingw-ucrt
 
 DEPENDENCIES
   json
+  mailslurp_client
   puma
   rack
   rackup
   sinatra
   sinatra-contrib
   sqlite3 (~> 1.6.9)
+  typhoeus
 
 BUNDLED WITH
    2.6.9
