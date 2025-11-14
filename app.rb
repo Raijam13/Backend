@@ -7,6 +7,7 @@ require_relative './controllers/reset_pasword_controller'
 require_relative './controllers/perfil_controller'
 require_relative './controllers/chat_controller'
 require_relative './controllers/eliminar_controller'
+require_relative './controllers/two_factor_controller'
 
 
 # Aquí se cargarán los controladores
@@ -16,8 +17,8 @@ use RegistroController
 use PerfilController
 use ChatController
 use EliminarController
+use TwoFactorController
 use ResetPasswordController
-
 
 set :bind, '0.0.0.0'
 set :port, 4567
