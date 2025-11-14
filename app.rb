@@ -1,31 +1,35 @@
 require 'sinatra'
 require 'sinatra/json'
 require_relative './database'
-<<<<<<< HEAD
-require_relative './controllers/login_controller'
-require_relative './controllers/registro_controller'
-require_relative './controllers/reset_pasword_controller'
-require_relative './controllers/perfil_controller'
-require_relative './controllers/chat_controller'
-require_relative './controllers/eliminar_controller'
-require_relative './controllers/two_factor_controller'
-require_relative './controllers/pagos_planificados_controller'
-=======
 # Controllers are loaded dynamically from the controllers/ folder
->>>>>>> e20045aaf0d4eb0a19087e50e22d8ef60426d7d1
 
-
-# Aquí se cargarán los controladores
 # Aquí se cargarán los controladores desde la carpeta controllers
 Dir["./controllers/*.rb"].each { |file| require file }
+
+# Controladores de autenticación y usuario
 use LoginController
 use RegistroController
 use PerfilController
-use ChatController
 use EliminarController
 use TwoFactorController
 use ResetPasswordController
+
+# Controladores de funcionalidad principal
+use ChatController
 use PagosPlanificadosController
+
+# Controladores de catálogos
+use CategoriasController
+use MonedasController
+use TiposCuentaController
+use TiposTransaccionController
+
+# Controladores CRUD
+use CuentasController
+use RegistrosController
+
+# Controladores de analytics
+use DashboardController
 
 set :bind, '0.0.0.0'
 set :port, 4567
