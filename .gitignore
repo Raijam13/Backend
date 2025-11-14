@@ -1,0 +1,8 @@
+# Ignorar la base de datos local
+*.sqlite
+*.db
+*.sqlite3
+db.sqlite
+/db/*
+/database/*.sqlite
+/database/*.db
