@@ -4,6 +4,7 @@ GEM
     base64 (0.3.0)
     ethon (0.15.0)
       ffi (>= 1.15.0)
+    ffi (1.17.2-arm64-darwin)
     ffi (1.17.2-x64-mingw-ucrt)
     json (2.15.2)
     logger (1.7.0)
@@ -46,7 +47,7 @@ GEM
     sqlite3 (1.6.9)
       mini_portile2 (~> 2.8.0)
     tilt (2.6.1)
-    timeout (0.4.3)
+    timeout (0.4.4)
     typhoeus (1.5.0)
       ethon (>= 0.9.0, < 0.16.0)
 
@@ -57,6 +58,7 @@ PLATFORMS
 DEPENDENCIES
   json
   mailslurp_client
+  net-protocol
   net-smtp
   puma
   rack
@@ -64,6 +66,7 @@ DEPENDENCIES
   sinatra
   sinatra-contrib
   sqlite3 (~> 1.6.9)
+  timeout
   typhoeus
 
 BUNDLED WITH

@@ -1,3 +1,5 @@
+# controllers/reset_password_controller.rb
+
 require 'sinatra/base'
 require 'json'
 require 'securerandom'
