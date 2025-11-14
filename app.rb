@@ -8,6 +8,7 @@ require_relative './controllers/perfil_controller'
 require_relative './controllers/chat_controller'
 require_relative './controllers/eliminar_controller'
 require_relative './controllers/two_factor_controller'
+require_relative './controllers/pagos_planificados_controller'
 
 
 # Aquí se cargarán los controladores
@@ -19,6 +20,7 @@ use ChatController
 use EliminarController
 use TwoFactorController
 use ResetPasswordController
+use PagosPlanificadosController
 
 set :bind, '0.0.0.0'
 set :port, 4567
