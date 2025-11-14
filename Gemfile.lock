@@ -12,6 +12,10 @@ GEM
     multi_json (1.17.0)
     mustermann (3.0.4)
       ruby2_keywords (~> 0.0.1)
+    net-protocol (0.2.2)
+      timeout
+    net-smtp (0.5.1)
+      net-protocol
     nio4r (2.7.4)
     puma (7.1.0)
       nio4r (~> 2.0)
@@ -42,6 +46,7 @@ GEM
     sqlite3 (1.6.9)
       mini_portile2 (~> 2.8.0)
     tilt (2.6.1)
+    timeout (0.4.3)
     typhoeus (1.5.0)
       ethon (>= 0.9.0, < 0.16.0)
 
@@ -52,6 +57,7 @@ PLATFORMS
 DEPENDENCIES
   json
   mailslurp_client
+  net-smtp
   puma
   rack
   rackup
