@@ -14,6 +14,13 @@ use ChatController
 use EliminarController
 use TwoFactorController
 use ResetPasswordController
+use CategoriasController
+use MonedasController
+use TiposCuentaController
+use TiposTransaccionController
+use CuentasController
+use RegistrosController
+use DashboardController
 
 set :bind, '0.0.0.0'
 set :port, 4567
