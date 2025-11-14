@@ -1,16 +1,11 @@
 require 'sinatra'
 require 'sinatra/json'
 require_relative './database'
-require_relative './controllers/login_controller'
-require_relative './controllers/registro_controller'
-require_relative './controllers/reset_pasword_controller'
-require_relative './controllers/perfil_controller'
-require_relative './controllers/chat_controller'
-require_relative './controllers/eliminar_controller'
-require_relative './controllers/two_factor_controller'
+# Controllers are loaded dynamically from the controllers/ folder
 
 
 # Aquí se cargarán los controladores
+# Aquí se cargarán los controladores desde la carpeta controllers
 Dir["./controllers/*.rb"].each { |file| require file }
 use LoginController
 use RegistroController

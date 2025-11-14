@@ -7,7 +7,7 @@ require_relative '../models/usuario'
 class ResetPasswordController < Sinatra::Base
   before do
     content_type :json
-  endS
+  end
 
   # POST /reset_password
   post '/reset_password' do
