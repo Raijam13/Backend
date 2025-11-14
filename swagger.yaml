@@ -1,0 +1,358 @@
+openapi: 3.0.0
+info:
+  title: API Finanzas - Chat, Usuarios y Seguridad
+  version: 1.0.0
+  description: Documentación de la API creada en Sinatra para el manejo de usuarios, chat, seguridad y perfil.
+
+servers:
+  - url: http://localhost:4567
+
+paths:
+
+  ############################################
+  # LOGIN
+  ############################################
+  /login:
+    post:
+      summary: Iniciar sesión
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Inicio de sesión exitoso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Credenciales inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  ############################################
+  # REGISTRO
+  ############################################
+  /registro:
+    post:
+      summary: Registrar usuario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistroRequest'
+      responses:
+        '201':
+          description: Usuario creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistroResponse'
+        '409':
+          description: Correo ya registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  ############################################
+  # PERFIL
+  ############################################
+  /perfil/{id}:
+    get:
+      summary: Obtener perfil por ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Perfil obtenido correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerfilResponse'
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Actualizar perfil
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PerfilUpdateRequest'
+      responses:
+        '200':
+          description: Perfil actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerfilResponse'
+        '404':
+          description: Usuario no encontrado
+
+  /perfil/{id}/imagen:
+    put:
+      summary: Subir o actualizar imagen de perfil
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                imagen:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Imagen actualizada correctamente
+
+  ############################################
+  # CHAT
+  ############################################
+  /chat:
+    post:
+      summary: Enviar mensaje y recibir respuesta automática
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: Respuesta generada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+
+  /chat/{id_usuario}:
+    get:
+      summary: Obtener historial del chat de un usuario
+      parameters:
+        - in: path
+          name: id_usuario
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Historial del chat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatHistoryResponse'
+        '404':
+          description: No hay mensajes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  ############################################
+  # ELIMINAR CUENTA
+  ############################################
+  /cuenta/{id}:
+    delete:
+      summary: Eliminar cuenta de usuario
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteAccountRequest'
+      responses:
+        '200':
+          description: Cuenta eliminada correctamente
+        '404':
+          description: Usuario no encontrado
+
+  ############################################
+  # RESET PASSWORD
+  ############################################
+  /reset_password:
+    post:
+      summary: Solicitar restablecimiento de contraseña
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Correo enviado
+
+  ############################################
+  # TWO FACTOR
+  ############################################
+  /two_factor/send_code:
+    post:
+      summary: Enviar código de verificación
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TwoFactorRequest'
+      responses:
+        '200':
+          description: Código enviado
+
+components:
+  schemas:
+
+    #######################################
+    # AUTH
+    #######################################
+    LoginRequest:
+      type: object
+      properties:
+        correo: { type: string }
+        contraseña: { type: string }
+      required: [correo, contraseña]
+
+    LoginResponse:
+      type: object
+      properties:
+        status: { type: string }
+        message: { type: string }
+        usuario:
+          $ref: '#/components/schemas/Usuario'
+
+    RegistroRequest:
+      type: object
+      properties:
+        nombres: { type: string }
+        apellidos: { type: string }
+        correo: { type: string }
+        contraseña: { type: string }
+      required: [nombres, apellidos, correo, contraseña]
+
+    RegistroResponse:
+      type: object
+      properties:
+        status: { type: string }
+        message: { type: string }
+        usuario:
+          $ref: '#/components/schemas/Usuario'
+
+    #######################################
+    # PERFIL
+    #######################################
+    PerfilUpdateRequest:
+      type: object
+      properties:
+        nombres: { type: string }
+        apellidos: { type: string }
+        correo: { type: string }
+        contraseña: { type: string }
+
+    PerfilResponse:
+      type: object
+      properties:
+        status: { type: string }
+        message: { type: string }
+        usuario:
+          $ref: '#/components/schemas/Usuario'
+
+    #######################################
+    # CHAT
+    #######################################
+    ChatRequest:
+      type: object
+      properties:
+        mensaje: { type: string }
+        idUsuario: { type: integer }
+      required: [mensaje, idUsuario]
+
+    ChatResponse:
+      type: object
+      properties:
+        status: { type: string }
+        respuesta: { type: string }
+
+    ChatHistoryResponse:
+      type: object
+      properties:
+        status: { type: string }
+        historial:
+          type: array
+          items:
+            $ref: '#/components/schemas/MensajeChat'
+
+    #######################################
+    # UTIL
+    #######################################
+    Usuario:
+      type: object
+      properties:
+        id: { type: integer }
+        nombres: { type: string }
+        apellidos: { type: string }
+        correo: { type: string }
+        imagen_perfil: { type: string }
+
+    MensajeChat:
+      type: object
+      properties:
+        id: { type: integer }
+        id_usuario: { type: integer }
+        texto: { type: string }
+        fecha: { type: string }
+
+    DeleteAccountRequest:
+      type: object
+      properties:
+        confirm_password: { type: string }
+
+    ResetPasswordRequest:
+      type: object
+      properties:
+        correo: { type: string }
+
+    TwoFactorRequest:
+      type: object
+      properties:
+        correo: { type: string }
+
+    ErrorResponse:
+      type: object
+      properties:
+        status: { type: string }
+        message: { type: string }
+        detalle: { type: string }

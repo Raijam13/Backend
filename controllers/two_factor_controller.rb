@@ -1,3 +1,5 @@
+# controllers/two_factor_controller.rb
+
 require 'sinatra/base'
 require 'json'
 require 'securerandom'

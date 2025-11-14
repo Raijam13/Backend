@@ -9,3 +9,7 @@ gem 'rack'
 gem 'rackup'
 gem 'mailslurp_client'
 gem 'typhoeus'
+
+gem 'net-smtp'
+gem 'net-protocol'
+gem 'timeout'
