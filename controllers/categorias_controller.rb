@@ -1,8 +1,13 @@
+# controllers/categorias_controller.rb
+
 require 'sinatra/base'
 require 'json'
 require_relative '../database'
+require_relative '../helpers/generic_response'
 
 class CategoriasController < Sinatra::Base
+  helpers GenericResponse
+
   before do
     content_type :json
   end
@@ -13,12 +18,11 @@ class CategoriasController < Sinatra::Base
       query = "SELECT id, nombre FROM Categoria ORDER BY nombre"
       categorias = DB.execute(query)
       
-      status 200
-      categorias.to_json
+      generic_response(true, 'Categorías obtenidas correctamente', categorias)
     rescue SQLite3::Exception => e
-      halt 500, { status: 'error', message: 'Error en la base de datos', detalle: e.message }.to_json
+      generic_response(false, 'Error en la base de datos', nil, e.message, 500)
     rescue => e
-      halt 500, { status: 'error', message: 'Error interno del servidor', detalle: e.message }.to_json
+      generic_response(false, 'Error interno del servidor', nil, e.message, 500)
     end
   end
 
@@ -30,15 +34,14 @@ class CategoriasController < Sinatra::Base
       categoria = DB.execute(query, [id]).first
 
       if categoria
-        status 200
-        categoria.to_json
+        generic_response(true, 'Categoría encontrada', categoria)
       else
-        halt 404, { status: 'error', message: 'Categoría no encontrada' }.to_json
+        generic_response(false, 'Categoría no encontrada', nil, nil, 404)
       end
     rescue SQLite3::Exception => e
-      halt 500, { status: 'error', message: 'Error en la base de datos', detalle: e.message }.to_json
+      generic_response(false, 'Error en la base de datos', nil, e.message, 500)
     rescue => e
-      halt 500, { status: 'error', message: 'Error interno del servidor', detalle: e.message }.to_json
+      generic_response(false, 'Error interno del servidor', nil, e.message, 500)
     end
   end
 end

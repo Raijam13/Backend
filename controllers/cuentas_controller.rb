@@ -2,24 +2,28 @@ require 'sinatra/base'
 require 'json'
 require_relative '../database'
 require_relative '../models/cuenta'
+require_relative '../helpers/generic_response'
 
 class CuentasController < Sinatra::Base
+  helpers GenericResponse
+
   before do
     content_type :json
   end
 
-  # GET /cuentas?user_id=:id - Listar cuentas de un usuario
+  # GET /cuentas?user_id=:id
   get '/cuentas' do
     begin
       user_id = params['user_id']
       
       if user_id.nil? || user_id.strip.empty?
-        halt 400, { status: 'error', message: 'El parámetro user_id es obligatorio' }.to_json
+        return generic_response(false, 'El parámetro user_id es obligatorio', nil, nil, 400)
       end
 
       cuentas = Cuenta.find_by_user(user_id)
       
-      # Formatear respuesta para el front
+      # Mapeo para mantener compatibilidad con el frontend actual si es necesario,
+      # pero estandarizando la respuesta envolvente.
       resultado = cuentas.map do |c|
         {
           id: c['id'],
@@ -30,16 +34,13 @@ class CuentasController < Sinatra::Base
         }
       end
 
-      status 200
-      resultado.to_json
-    rescue SQLite3::Exception => e
-      halt 500, { status: 'error', message: 'Error en la base de datos', detalle: e.message }.to_json
+      generic_response(true, "Cuentas obtenidas correctamente", resultado)
     rescue => e
-      halt 500, { status: 'error', message: 'Error interno del servidor', detalle: e.message }.to_json
+      generic_response(false, 'Error interno del servidor', nil, e.message, 500)
     end
   end
 
-  # GET /cuentas/:id - Obtener detalle de una cuenta
+  # GET /cuentas/:id
   get '/cuentas/:id' do
     begin
       id = params['id']
@@ -54,19 +55,16 @@ class CuentasController < Sinatra::Base
           type: cuenta['tipo_cuenta'],
           idUsuario: cuenta['idUsuario']
         }
-        status 200
-        resultado.to_json
+        generic_response(true, "Cuenta obtenida correctamente", resultado)
       else
-        halt 404, { status: 'error', message: 'Cuenta no encontrada' }.to_json
+        generic_response(false, 'Cuenta no encontrada', nil, nil, 404)
       end
-    rescue SQLite3::Exception => e
-      halt 500, { status: 'error', message: 'Error en la base de datos', detalle: e.message }.to_json
     rescue => e
-      halt 500, { status: 'error', message: 'Error interno del servidor', detalle: e.message }.to_json
+      generic_response(false, 'Error interno del servidor', nil, e.message, 500)
     end
   end
 
-  # POST /cuentas - Crear una nueva cuenta
+  # POST /cuentas
   post '/cuentas' do
     begin
       payload = JSON.parse(request.body.read)
@@ -76,125 +74,124 @@ class CuentasController < Sinatra::Base
       code_moneda = payload['codeMoneda'] || 'PEN'
       nombre_tipo = payload['tipoCuenta'] || 'General'
 
-      # Validar campos obligatorios
       if nombre.nil? || nombre.strip.empty? || id_usuario.nil?
-        halt 400, { status: 'error', message: 'nombre e idUsuario son obligatorios' }.to_json
+        return generic_response(false, 'nombre e idUsuario son obligatorios', nil, nil, 400)
       end
 
-      # Obtener id de moneda por code
+      # Validaciones usando SQL directo (idealmente mover a Modelo o Servicio)
+      # Por ahora mantenemos la lógica aquí pero usando GenericResponse
+      
       query_moneda = "SELECT id FROM Moneda WHERE code = ? OR nombre = ? LIMIT 1"
       moneda = DB.execute(query_moneda, [code_moneda, code_moneda]).first
       unless moneda
-        halt 400, { status: 'error', message: "Moneda #{code_moneda} no encontrada" }.to_json
+        return generic_response(false, "Moneda #{code_moneda} no encontrada", nil, nil, 400)
       end
       id_moneda = moneda['id']
 
-      # Obtener id de tipo de cuenta por nombre
       query_tipo = "SELECT id FROM TipoCuenta WHERE nombre = ? LIMIT 1"
       tipo = DB.execute(query_tipo, [nombre_tipo]).first
       unless tipo
-        halt 400, { status: 'error', message: "Tipo de cuenta #{nombre_tipo} no encontrado" }.to_json
+        return generic_response(false, "Tipo de cuenta #{nombre_tipo} no encontrado", nil, nil, 400)
       end
       id_tipo_cuenta = tipo['id']
 
-      # Crear cuenta
       id = Cuenta.create(nombre, saldo, id_usuario, id_moneda, id_tipo_cuenta)
 
-      status 201
-      {
-        status: 'ok',
-        message: 'Cuenta creada exitosamente',
-        cuenta: {
-          id: id,
-          name: nombre,
-          amount: saldo,
-          currency: code_moneda,
-          type: nombre_tipo
-        }
-      }.to_json
+      data = {
+        id: id,
+        name: nombre,
+        amount: saldo,
+        currency: code_moneda,
+        type: nombre_tipo
+      }
+      
+      generic_response(true, 'Cuenta creada exitosamente', data, nil, 201)
+
     rescue JSON::ParserError
-      halt 400, { status: 'error', message: 'Formato JSON inválido' }.to_json
-    rescue SQLite3::Exception => e
-      halt 500, { status: 'error', message: 'Error en la base de datos', detalle: e.message }.to_json
+      generic_response(false, 'Formato JSON inválido', nil, nil, 400)
     rescue => e
-      halt 500, { status: 'error', message: 'Error interno del servidor', detalle: e.message }.to_json
+      generic_response(false, 'Error interno del servidor', nil, e.message, 500)
     end
   end
 
-  # PUT /cuentas/:id - Actualizar una cuenta
+  # PUT /cuentas/:id
   put '/cuentas/:id' do
     begin
       id = params['id']
       payload = JSON.parse(request.body.read)
+      
+      # Validar propiedad si se envía idUsuario (Recomendado)
+      id_usuario_request = payload['idUsuario']
 
       cuenta = Cuenta.find_by_id(id)
       unless cuenta
-        halt 404, { status: 'error', message: 'Cuenta no encontrada' }.to_json
+        return generic_response(false, 'Cuenta no encontrada', nil, nil, 404)
+      end
+
+      if id_usuario_request && cuenta['idUsuario'] != id_usuario_request
+         return generic_response(false, 'No tienes permiso para editar esta cuenta', nil, nil, 403)
       end
 
       nombre = payload['nombre'] || cuenta['nombre']
       saldo = payload['saldo'] || cuenta['saldo']
       nombre_tipo = payload['tipoCuenta']
 
-      # Obtener id de tipo si se proporcionó
       if nombre_tipo
         query_tipo = "SELECT id FROM TipoCuenta WHERE nombre = ? LIMIT 1"
         tipo = DB.execute(query_tipo, [nombre_tipo]).first
         unless tipo
-          halt 400, { status: 'error', message: "Tipo de cuenta #{nombre_tipo} no encontrado" }.to_json
+          return generic_response(false, "Tipo de cuenta #{nombre_tipo} no encontrado", nil, nil, 400)
         end
         id_tipo_cuenta = tipo['id']
       else
-        # Obtener tipo actual
+        # Si no se envía tipo, mantenemos el actual (que no tenemos en 'cuenta' hash directo, necesitamos query o lógica)
+        # El modelo update requiere id_tipo_cuenta.
+        # Recuperamos el idTipoCuenta actual
         query = "SELECT idTipoCuenta FROM Cuenta WHERE id = ? LIMIT 1"
         result = DB.execute(query, [id]).first
         id_tipo_cuenta = result['idTipoCuenta']
       end
 
+      # Usamos update simple ya que verificamos propiedad arriba (si se envió idUsuario)
       Cuenta.update(id, nombre, saldo, id_tipo_cuenta)
 
-      status 200
-      {
-        status: 'ok',
-        message: 'Cuenta actualizada exitosamente'
-      }.to_json
+      generic_response(true, 'Cuenta actualizada exitosamente', { id: id })
+
     rescue JSON::ParserError
-      halt 400, { status: 'error', message: 'Formato JSON inválido' }.to_json
-    rescue SQLite3::Exception => e
-      halt 500, { status: 'error', message: 'Error en la base de datos', detalle: e.message }.to_json
+      generic_response(false, 'Formato JSON inválido', nil, nil, 400)
     rescue => e
-      halt 500, { status: 'error', message: 'Error interno del servidor', detalle: e.message }.to_json
+      generic_response(false, 'Error interno del servidor', nil, e.message, 500)
     end
   end
 
-  # DELETE /cuentas/:id - Eliminar una cuenta
+  # DELETE /cuentas/:id
   delete '/cuentas/:id' do
     begin
       id = params['id']
+      user_id = params['user_id'] # Para validación de seguridad
 
       cuenta = Cuenta.find_by_id(id)
       unless cuenta
-        halt 404, { status: 'error', message: 'Cuenta no encontrada' }.to_json
+        return generic_response(false, 'Cuenta no encontrada', nil, nil, 404)
       end
 
-      # Verificar si tiene registros asociados
+      if user_id && cuenta['idUsuario'].to_s != user_id.to_s
+        return generic_response(false, 'No tienes permiso para eliminar esta cuenta', nil, nil, 403)
+      end
+
+      # Verificar registros asociados
       query_registros = "SELECT COUNT(*) as count FROM Registro WHERE idCuenta = ?"
       result = DB.execute(query_registros, [id]).first
       if result['count'] > 0
-        halt 400, { status: 'error', message: 'No se puede eliminar la cuenta porque tiene registros asociados' }.to_json
+        return generic_response(false, 'No se puede eliminar la cuenta porque tiene registros asociados', nil, nil, 400)
       end
 
       Cuenta.delete_by_id(id)
 
-      status 200
-      {
-        status: 'ok',
-        message: 'Cuenta eliminada correctamente'
-      }.to_json
-    rescue SQLite3::Exception => e
-      halt 500, { status: 'error', message: 'Error en la base de datos', detalle: e.message }.to_json
+      generic_response(true, 'Cuenta eliminada correctamente', { id: id })
+
     rescue => e
-      halt 500, { status: 'error', message: 'Error interno del servidor', detalle: e.message }.to_json
+      generic_response(false, 'Error interno del servidor', nil, e.message, 500)
     end
   end
 end

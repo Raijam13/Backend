@@ -1,9 +1,14 @@
+# controllers/chat_controller.rb
+
 require 'sinatra/base'
 require 'json'
 require 'time'
 require_relative '../models/mensaje'
+require_relative '../helpers/generic_response'
 
 class ChatController < Sinatra::Base
+  helpers GenericResponse
+
   before do
     content_type :json
   end
@@ -13,10 +18,14 @@ class ChatController < Sinatra::Base
     begin
       payload = JSON.parse(request.body.read)
       mensaje_usuario = payload['mensaje']
-      id_usuario = payload['idUsuario']  # ← ID del usuario que manda el mensaje
+      id_usuario = payload['idUsuario']
 
       if mensaje_usuario.nil? || mensaje_usuario.strip.empty?
-        halt 400, { status: 'error', message: 'El mensaje no puede estar vacío' }.to_json
+        return generic_response(false, 'El mensaje no puede estar vacío', nil, nil, 400)
+      end
+
+      if id_usuario.nil?
+        return generic_response(false, 'El idUsuario es obligatorio', nil, nil, 400)
       end
 
       # Generar respuesta
@@ -29,19 +38,18 @@ class ChatController < Sinatra::Base
       # Guardar respuesta del bot
       Mensaje.create(id_usuario, "Bot: #{respuesta}", fecha)
 
-      status 200
-      {
-        status: 'ok',
-        message: 'Respuesta generada y guardada correctamente',
+      data = {
         respuesta: respuesta
-      }.to_json
+      }
+
+      generic_response(true, 'Respuesta generada y guardada correctamente', data)
 
     rescue JSON::ParserError
-      halt 400, { status: 'error', message: 'Formato JSON inválido' }.to_json
+      generic_response(false, 'Formato JSON inválido', nil, nil, 400)
     rescue SQLite3::Exception => e
-      halt 500, { status: 'error', message: 'Error en la base de datos', detalle: e.message }.to_json
+      generic_response(false, 'Error en la base de datos', nil, e.message, 500)
     rescue => e
-      halt 500, { status: 'error', message: 'Error interno', detalle: e.message }.to_json
+      generic_response(false, 'Error interno', nil, e.message, 500)
     end
   end
 
@@ -52,18 +60,21 @@ class ChatController < Sinatra::Base
       mensajes = Mensaje.find_by_user(id_usuario)
 
       if mensajes.empty?
-        halt 404, { status: 'error', message: 'No hay mensajes para este usuario' }.to_json
+        # Nota: Podríamos devolver 200 con lista vacía, pero el requerimiento original era 404.
+        # Para mantener compatibilidad con frontend si espera 404:
+        return generic_response(false, 'No hay mensajes para este usuario', [], nil, 404)
       end
 
-      status 200
-      {
-        status: 'ok',
-        message: 'Historial obtenido correctamente',
+      data = {
         historial: mensajes
-      }.to_json
+      }
+
+      generic_response(true, 'Historial obtenido correctamente', data)
 
     rescue SQLite3::Exception => e
-      halt 500, { status: 'error', message: 'Error en la base de datos', detalle: e.message }.to_json
+      generic_response(false, 'Error en la base de datos', nil, e.message, 500)
+    rescue => e
+      generic_response(false, 'Error interno', nil, e.message, 500)
     end
   end
 

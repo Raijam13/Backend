@@ -5,8 +5,11 @@ require 'json'
 require 'securerandom'
 require 'net/smtp'
 require_relative '../models/usuario'
+require_relative '../helpers/generic_response'
 
 class TwoFactorController < Sinatra::Base
+  helpers GenericResponse
+
   before do
     content_type :json
   end
@@ -18,31 +21,35 @@ class TwoFactorController < Sinatra::Base
       correo = payload['correo']
 
       if correo.nil? || correo.strip.empty?
-        halt 400, { status: 'error', message: 'El campo correo es obligatorio' }.to_json
+        return generic_response(false, 'El campo correo es obligatorio', nil, nil, 400)
       end
 
       usuario = Usuario.find_by_email(correo)
       unless usuario
-        halt 404, { status: 'error', message: 'No existe una cuenta con ese correo' }.to_json
+        return generic_response(false, 'No existe una cuenta con ese correo', nil, nil, 404)
       end
 
       # 🔢 Generar un código aleatorio de 6 dígitos
       codigo = rand(100000..999999).to_s
 
       # ✉️ Enviar el correo
-      send_two_factor_email(correo, codigo)
+      begin
+        send_two_factor_email(correo, codigo)
+      rescue => e
+        # Si falla el envío de correo, devolvemos error 500 pero con detalle
+        return generic_response(false, 'Error al enviar el correo de verificación', nil, e.message, 500)
+      end
 
-      status 200
-      {
-        status: 'ok',
-        message: "Código de verificación enviado a #{correo}.",
-        codigo_fake_para_testing: codigo # <- bórralo cuando termines de testear
-      }.to_json
+      data = {
+        codigo_fake_para_testing: codigo # <- bórralo cuando termines de testear o en prod
+      }
+
+      generic_response(true, "Código de verificación enviado a #{correo}.", data)
 
     rescue JSON::ParserError
-      halt 400, { status: 'error', message: 'Formato JSON inválido' }.to_json
+      generic_response(false, 'Formato JSON inválido', nil, nil, 400)
     rescue => e
-      halt 500, { status: 'error', message: 'Error interno del servidor', detalle: e.message }.to_json
+      generic_response(false, 'Error interno del servidor', nil, e.message, 500)
     end
   end
 

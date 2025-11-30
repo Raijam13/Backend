@@ -40,6 +40,11 @@ class Cuenta
     DB.execute(query, [nombre, saldo, id_tipo_cuenta, id])
   end
 
+  def self.update_by_user(id, id_usuario, nombre, saldo, id_tipo_cuenta)
+    query = "UPDATE Cuenta SET nombre = ?, saldo = ?, idTipoCuenta = ? WHERE id = ? AND idUsuario = ?"
+    DB.execute(query, [nombre, saldo, id_tipo_cuenta, id, id_usuario])
+  end
+
   def self.update_saldo(id, nuevo_saldo)
     query = "UPDATE Cuenta SET saldo = ? WHERE id = ?"
     DB.execute(query, [nuevo_saldo, id])
@@ -48,5 +53,10 @@ class Cuenta
   def self.delete_by_id(id)
     query = "DELETE FROM Cuenta WHERE id = ?"
     DB.execute(query, [id])
+  end
+
+  def self.delete_by_id_and_user(id, id_usuario)
+    query = "DELETE FROM Cuenta WHERE id = ? AND idUsuario = ?"
+    DB.execute(query, [id, id_usuario])
   end
 end

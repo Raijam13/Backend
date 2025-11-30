@@ -1,8 +1,13 @@
+# controllers/eliminar_controller.rb
+
 require 'sinatra/base'
 require 'json'
 require_relative '../models/usuario'
+require_relative '../helpers/generic_response'
 
 class EliminarController < Sinatra::Base
+  helpers GenericResponse
+
   before do
     content_type :json
   end
@@ -15,36 +20,36 @@ class EliminarController < Sinatra::Base
 
       # Si el cuerpo del request tiene confirmación de contraseña
       unless payload.nil? || payload.strip.empty?
-        confirm_password = JSON.parse(payload)['confirm_password']
+        begin
+          confirm_password = JSON.parse(payload)['confirm_password']
+        rescue JSON::ParserError
+          # Si el payload no es JSON válido pero no está vacío, ignoramos o lanzamos error.
+          # En este caso, si hay payload esperamos que sea JSON.
+          return generic_response(false, 'Formato JSON inválido', nil, nil, 400)
+        end
       end
 
       usuario = Usuario.find_by_id(id)
       unless usuario
-        halt 404, { status: 'error', message: 'Usuario no encontrado' }.to_json
+        return generic_response(false, 'Usuario no encontrado', nil, nil, 404)
       end
 
       # Validar contraseña si se envía
       if confirm_password
         unless usuario['contraseña'] == confirm_password
-          halt 401, { status: 'error', message: 'Contraseña incorrecta' }.to_json
+          return generic_response(false, 'Contraseña incorrecta', nil, nil, 401)
         end
         Usuario.delete_by_id_and_password(id, confirm_password)
       else
         Usuario.delete_by_id(id)
       end
 
-      status 200
-      {
-        status: 'ok',
-        message: 'Cuenta eliminada correctamente'
-      }.to_json
+      generic_response(true, 'Cuenta eliminada correctamente')
 
-    rescue JSON::ParserError
-      halt 400, { status: 'error', message: 'Formato JSON inválido' }.to_json
     rescue SQLite3::Exception => e
-      halt 500, { status: 'error', message: 'Error en la base de datos', detalle: e.message }.to_json
+      generic_response(false, 'Error en la base de datos', nil, e.message, 500)
     rescue => e
-      halt 500, { status: 'error', message: 'Error interno del servidor', detalle: e.message }.to_json
+      generic_response(false, 'Error interno del servidor', nil, e.message, 500)
     end
   end
 end

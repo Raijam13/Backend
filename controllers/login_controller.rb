@@ -3,8 +3,11 @@
 require 'sinatra/base'
 require 'json'
 require_relative '../models/usuario'
+require_relative '../helpers/generic_response'
 
 class LoginController < Sinatra::Base
+  helpers GenericResponse
+
   before do
     content_type :json
   end
@@ -16,16 +19,13 @@ class LoginController < Sinatra::Base
       contraseña = payload['contraseña']
 
       if correo.nil? || contraseña.nil? || correo.strip.empty? || contraseña.strip.empty?
-        halt 400, { status: 'error', message: 'Correo y contraseña son obligatorios' }.to_json
+        return generic_response(false, 'Correo y contraseña son obligatorios', nil, nil, 400)
       end
 
       usuario = Usuario.find_by_credentials(correo, contraseña)
 
       if usuario
-        status 200
-        {
-          status: 'ok',
-          message: 'Inicio de sesión exitoso',
+        data = {
           usuario: {
             id: usuario['id'],
             correo: usuario['correo'],
@@ -33,19 +33,17 @@ class LoginController < Sinatra::Base
             apellidos: usuario['apellidos'],
             imagen_perfil: usuario['imagen_perfil']
           }
-        }.to_json
+        }
+        generic_response(true, 'Inicio de sesión exitoso', data, nil, 200)
       else
-        halt 401, { status: 'error', message: 'Correo o contraseña incorrectos' }.to_json
+        generic_response(false, 'Correo o contraseña incorrectos', nil, nil, 401)
       end
 
     rescue JSON::ParserError
-      halt 400, { status: 'error', message: 'Formato JSON inválido o no ingreso credenciales' }.to_json
-
-    rescue SQLite3::Exception => e
-      halt 500, { status: 'error', message: 'Error en la base de datos', detalle: e.message }.to_json
+      generic_response(false, 'Formato JSON inválido o no ingreso credenciales', nil, nil, 400)
 
     rescue => e
-      halt 500, { status: 'error', message: 'Error interno del servidor', detalle: e.message }.to_json
+      generic_response(false, 'Error interno del servidor', nil, e.message, 500)
     end
   end
 end

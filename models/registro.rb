@@ -40,9 +40,19 @@ class Registro
     DB.last_insert_row_id
   end
 
+  def self.update(id, fecha_hora, monto, id_cuenta, id_tipo_transaccion, id_categoria)
+    query = "UPDATE Registro SET fechaHora = ?, monto = ?, idCuenta = ?, idTipoTransaccion = ?, idCategoria = ? WHERE id = ?"
+    DB.execute(query, [fecha_hora, monto, id_cuenta, id_tipo_transaccion, id_categoria, id])
+  end
+
   def self.delete_by_id(id)
     query = "DELETE FROM Registro WHERE id = ?"
     DB.execute(query, [id])
+  end
+
+  def self.delete_by_id_and_user(id, id_usuario)
+    query = "DELETE FROM Registro WHERE id = ? AND idUsuario = ?"
+    DB.execute(query, [id, id_usuario])
   end
 
   def self.get_tipo_transaccion(id_tipo)

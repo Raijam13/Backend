@@ -3,8 +3,11 @@
 require 'sinatra/base'
 require 'json'
 require_relative '../models/usuario'
+require_relative '../helpers/generic_response'
 
 class RegistroController < Sinatra::Base
+  helpers GenericResponse
+
   before do
     content_type :json
   end
@@ -21,37 +24,33 @@ class RegistroController < Sinatra::Base
 
       # Validar campos obligatorios
       if [nombres, apellidos, correo, contrasena].any? { |campo| campo.nil? || campo.strip.empty? }
-        halt 400, { status: 'error', message: 'Todos los campos son obligatorios' }.to_json
+        return generic_response(false, 'Todos los campos son obligatorios', nil, nil, 400)
       end
 
       # Verificar si el correo ya está registrado
       if Usuario.find_by_email(correo)
-        halt 409, { status: 'error', message: 'El correo ya está registrado' }.to_json
+        return generic_response(false, 'El correo ya está registrado', nil, nil, 409)
       end
 
       # Crear el usuario
       id = Usuario.create(nombres, apellidos, correo, contrasena)
 
-      status 201
-      {
-        status: 'ok',
-        message: 'Usuario creado exitosamente',
+      data = {
         usuario: {
           id: id,
           nombres: nombres,
           apellidos: apellidos,
           correo: correo
         }
-      }.to_json
+      }
+
+      generic_response(true, 'Usuario creado exitosamente', data, nil, 201)
 
     rescue JSON::ParserError
-      halt 400, { status: 'error', message: 'Formato JSON inválido' }.to_json
-
-    rescue SQLite3::Exception => e
-      halt 500, { status: 'error', message: 'Error en la base de datos', detalle: e.message }.to_json
+      generic_response(false, 'Formato JSON inválido', nil, nil, 400)
 
     rescue => e
-      halt 500, { status: 'error', message: 'Error interno del servidor', detalle: e.message }.to_json
+      generic_response(false, 'Error interno del servidor', nil, e.message, 500)
     end
   end
 end

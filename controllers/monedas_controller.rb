@@ -1,8 +1,13 @@
+# controllers/monedas_controller.rb
+
 require 'sinatra/base'
 require 'json'
 require_relative '../database'
+require_relative '../helpers/generic_response'
 
 class MonedasController < Sinatra::Base
+  helpers GenericResponse
+
   before do
     content_type :json
   end
@@ -13,12 +18,11 @@ class MonedasController < Sinatra::Base
       query = "SELECT id, code, nombre FROM Moneda ORDER BY code"
       monedas = DB.execute(query)
       
-      status 200
-      monedas.to_json
+      generic_response(true, 'Monedas obtenidas correctamente', monedas)
     rescue SQLite3::Exception => e
-      halt 500, { status: 'error', message: 'Error en la base de datos', detalle: e.message }.to_json
+      generic_response(false, 'Error en la base de datos', nil, e.message, 500)
     rescue => e
-      halt 500, { status: 'error', message: 'Error interno del servidor', detalle: e.message }.to_json
+      generic_response(false, 'Error interno del servidor', nil, e.message, 500)
     end
   end
 
@@ -30,15 +34,14 @@ class MonedasController < Sinatra::Base
       moneda = DB.execute(query, [code]).first
 
       if moneda
-        status 200
-        moneda.to_json
+        generic_response(true, 'Moneda encontrada', moneda)
       else
-        halt 404, { status: 'error', message: 'Moneda no encontrada' }.to_json
+        generic_response(false, 'Moneda no encontrada', nil, nil, 404)
       end
     rescue SQLite3::Exception => e
-      halt 500, { status: 'error', message: 'Error en la base de datos', detalle: e.message }.to_json
+      generic_response(false, 'Error en la base de datos', nil, e.message, 500)
     rescue => e
-      halt 500, { status: 'error', message: 'Error interno del servidor', detalle: e.message }.to_json
+      generic_response(false, 'Error interno del servidor', nil, e.message, 500)
     end
   end
 end

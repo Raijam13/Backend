@@ -1,10 +1,15 @@
+# controllers/reset_password_controller.rb
+
 require 'sinatra/base'
 require 'json'
 require 'securerandom'
 require 'net/smtp'
 require_relative '../models/usuario'
+require_relative '../helpers/generic_response'
 
 class ResetPasswordController < Sinatra::Base
+  helpers GenericResponse
+
   before do
     content_type :json
   end
@@ -16,12 +21,12 @@ class ResetPasswordController < Sinatra::Base
       correo = payload['correo']
 
       if correo.nil? || correo.strip.empty?
-        halt 400, { status: 'error', message: 'El campo correo es obligatorio' }.to_json
+        return generic_response(false, 'El campo correo es obligatorio', nil, nil, 400)
       end
 
       usuario = Usuario.find_by_email(correo)
       unless usuario
-        halt 404, { status: 'error', message: 'No existe una cuenta con ese correo' }.to_json
+        return generic_response(false, 'No existe una cuenta con ese correo', nil, nil, 404)
       end
 
       # 🔑 Generar token temporal (válido por ejemplo 10 minutos)
@@ -29,19 +34,22 @@ class ResetPasswordController < Sinatra::Base
       link_ficticio = "https://miapp.com/reset_password?token=#{token}"
 
       # ✉️ Enviar correo real con SMTP
-      send_reset_email(correo, link_ficticio)
+      begin
+        send_reset_email(correo, link_ficticio)
+      rescue => e
+        return generic_response(false, 'Error al enviar el correo de restablecimiento', nil, e.message, 500)
+      end
 
-      status 200
-      {
-        status: 'ok',
-        message: "Correo de verificación enviado correctamente a #{correo}.",
+      data = {
         enlace: link_ficticio
-      }.to_json
+      }
+
+      generic_response(true, "Correo de verificación enviado correctamente a #{correo}.", data)
 
     rescue JSON::ParserError
-      halt 400, { status: 'error', message: 'Formato JSON inválido' }.to_json
+      generic_response(false, 'Formato JSON inválido', nil, nil, 400)
     rescue => e
-      halt 500, { status: 'error', message: 'Error interno del servidor', detalle: e.message }.to_json
+      generic_response(false, 'Error interno del servidor', nil, e.message, 500)
     end
   end
 

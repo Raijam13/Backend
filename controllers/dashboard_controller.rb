@@ -1,8 +1,13 @@
+# controllers/dashboard_controller.rb
+
 require 'sinatra/base'
 require 'json'
 require_relative '../database'
+require_relative '../helpers/generic_response'
 
 class DashboardController < Sinatra::Base
+  helpers GenericResponse
+
   before do
     content_type :json
   end
@@ -16,7 +21,7 @@ class DashboardController < Sinatra::Base
       month = params['month'] || Time.now.month
 
       if user_id.nil? || user_id.strip.empty?
-        halt 400, { status: 'error', message: 'El parámetro user_id es obligatorio' }.to_json
+        return generic_response(false, 'El parámetro user_id es obligatorio', nil, nil, 400)
       end
 
       # Calcular fechas según periodo
@@ -67,19 +72,21 @@ class DashboardController < Sinatra::Base
         }
       end
 
-      status 200
-      {
+      data = {
         period: "#{year}-#{month.to_s.rjust(2, '0')}",
         total_spent: total_spent.to_f,
         top_categories: top_categorias_formatted,
         trend: {
           message: "Resumen del periodo #{year}-#{month}"
         }
-      }.to_json
+      }
+
+      generic_response(true, 'Resumen obtenido correctamente', data)
+
     rescue SQLite3::Exception => e
-      halt 500, { status: 'error', message: 'Error en la base de datos', detalle: e.message }.to_json
+      generic_response(false, 'Error en la base de datos', nil, e.message, 500)
     rescue => e
-      halt 500, { status: 'error', message: 'Error interno del servidor', detalle: e.message }.to_json
+      generic_response(false, 'Error interno del servidor', nil, e.message, 500)
     end
   end
 
@@ -89,21 +96,23 @@ class DashboardController < Sinatra::Base
       user_id = params['user_id']
 
       if user_id.nil? || user_id.strip.empty?
-        halt 400, { status: 'error', message: 'El parámetro user_id es obligatorio' }.to_json
+        return generic_response(false, 'El parámetro user_id es obligatorio', nil, nil, 400)
       end
 
       query = "SELECT COALESCE(SUM(saldo), 0) as balance FROM Cuenta WHERE idUsuario = ?"
       result = DB.execute(query, [user_id]).first
 
-      status 200
-      {
+      data = {
         user_id: user_id.to_i,
         total_balance: result['balance'].to_f
-      }.to_json
+      }
+
+      generic_response(true, 'Balance total obtenido correctamente', data)
+
     rescue SQLite3::Exception => e
-      halt 500, { status: 'error', message: 'Error en la base de datos', detalle: e.message }.to_json
+      generic_response(false, 'Error en la base de datos', nil, e.message, 500)
     rescue => e
-      halt 500, { status: 'error', message: 'Error interno del servidor', detalle: e.message }.to_json
+      generic_response(false, 'Error interno del servidor', nil, e.message, 500)
     end
   end
 end

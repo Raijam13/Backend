@@ -1,8 +1,13 @@
+# controllers/tipos_cuenta_controller.rb
+
 require 'sinatra/base'
 require 'json'
 require_relative '../database'
+require_relative '../helpers/generic_response'
 
 class TiposCuentaController < Sinatra::Base
+  helpers GenericResponse
+
   before do
     content_type :json
   end
@@ -13,12 +18,11 @@ class TiposCuentaController < Sinatra::Base
       query = "SELECT id, nombre FROM TipoCuenta ORDER BY nombre"
       tipos = DB.execute(query)
       
-      status 200
-      tipos.to_json
+      generic_response(true, 'Tipos de cuenta obtenidos correctamente', tipos)
     rescue SQLite3::Exception => e
-      halt 500, { status: 'error', message: 'Error en la base de datos', detalle: e.message }.to_json
+      generic_response(false, 'Error en la base de datos', nil, e.message, 500)
     rescue => e
-      halt 500, { status: 'error', message: 'Error interno del servidor', detalle: e.message }.to_json
+      generic_response(false, 'Error interno del servidor', nil, e.message, 500)
     end
   end
 end
