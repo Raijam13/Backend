@@ -101,109 +101,6 @@ paths:
             type: integer
       responses:
         '200':
-openapi: 3.0.0
-info:
-  title: API Finanzas - Chat, Usuarios y Seguridad
-  version: 1.0.0
-  description: Documentación de la API creada en Sinatra para el manejo de usuarios, chat, seguridad y perfil.
-
-servers:
-  - url: http://localhost:4567
-
-paths:
-
-  ############################################
-  # CUENTAS
-  ############################################
-  /cuentas:
-    get:
-      tags: [Cuentas]
-      summary: Listar cuentas de un usuario
-      parameters:
-        - in: query
-          name: user_id
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: Cuentas obtenidas correctamente
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CuentasListResponse'
-    post:
-      tags: [Cuentas]
-      summary: Crear una nueva cuenta
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CuentaCreateRequest'
-      responses:
-        '201':
-          description: Cuenta creada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CuentaResponse'
-
-  /cuentas/{id}:
-    get:
-      tags: [Cuentas]
-      summary: Obtener detalle de una cuenta
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: Detalle de cuenta
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CuentaResponse'
-    put:
-      tags: [Cuentas]
-      summary: Actualizar una cuenta
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CuentaCreateRequest'
-      responses:
-        '200':
-          description: Cuenta actualizada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CuentaResponse'
-    delete:
-      tags: [Cuentas]
-      summary: Eliminar una cuenta
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-        - in: query
-          name: user_id
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
           description: Cuenta eliminada
           content:
             application/json:
@@ -592,19 +489,46 @@ paths:
     post:
       summary: Solicitar restablecimiento de contraseña
       requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Correo enviado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResetPasswordResponse'
+
+components:
+  schemas:
+
+    ############################################
     # AUTENTICACIÓN
     ############################################
     LoginRequest:
       type: object
-      type: object
       properties:
-      type: object
-      properties:
-        id: { type: integer }
-        nombres: { type: string }
-        apellidos: { type: string }
         correo: { type: string }
-        imagen_perfil: { type: string }
+        password: { type: string }
+      required: [correo, password]
+
+    LoginResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+        data:
+          type: object
+          properties:
+            id: { type: integer }
+            nombres: { type: string }
+            apellidos: { type: string }
+            correo: { type: string }
+            imagen_perfil: { type: string }
+        error: { nullable: true }
 
     MensajeChat:
       type: object
@@ -646,396 +570,6 @@ paths:
         nombre: { type: string, description: Nombre a mostrar en el frontend. }
       required: [id, nombre]
 
-    CuentaItem:
-      type: object
-      properties:
-        id: { type: integer }
-        name: { type: string }
-        amount: { type: number, format: float }
-        currency: { type: string }
-        type: { type: string }
-
-    CuentasListResponse:
-      type: object
-      properties:
-        success: { type: boolean }
-        message: { type: string }
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/CuentaItem'
-        error: { nullable: true }
-
-    CuentaResponse:
-      type: object
-      properties:
-        success: { type: boolean }
-        message: { type: string }
-        data:
-          $ref: '#/components/schemas/CuentaItem'
-        error: { nullable: true }
-
-    CuentaCreateRequest:
-      type: object
-      properties:
-        nombre: { type: string }
-        saldo: { type: number }
-        idUsuario: { type: integer }
-        codeMoneda: { type: string }
-        tipoCuenta: { type: string }
-      required: [nombre, idUsuario]
-
-    CatalogosResponse:
-      type: object
-      properties:
-        success: { type: boolean }
-        message: { type: string }
-        data:
-          type: object
-          properties:
-            tipos_transaccion: { type: array, description: Lista de Ingreso/Gasto., items: { $ref: '#/components/schemas/CatalogoItem' } }
-            frecuencias: { type: array, description: Lista de períodos (Mensual, Anual)., items: { $ref: '#/components/schemas/CatalogoItem' } }
-            categorias: { type: array, description: Lista de categorías definidas por el usuario., items: { $ref: '#/components/schemas/CatalogoItem' } }
-            tipos_pago: { type: array, description: Lista de tipos de pago., items: { $ref: '#/components/schemas/CatalogoItem' } }
-            cuentas: { type: array, description: Cuentas del usuario., items: { $ref: '#/components/schemas/CuentaItem' } }
-        error: { nullable: true }
-
-    PagoPlanificadoItem:
-      type: object
-      properties:
-        id: { type: integer }
-        nombre: { type: string }
-        monto: { type: number, format: float }
-        tipo: { type: string, enum: [ingreso, gasto] }
-        periodo: { type: string, description: Frecuencia (ej. Mensual). }
-        categoria: { type: string, description: Nombre de la categoría. }
-        proximaFecha: { type: string, format: date, description: Fecha del siguiente pago. }
-      required: [id, nombre, monto, tipo, periodo, proximaFecha]
-
-    PagoPlanificadoListResponse:
-      type: object
-      properties:
-        success: { type: boolean }
-        message: { type: string }
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/PagoPlanificadoItem'
-        error: { nullable: true }
-
-    PagoPlanificadoCreateRequest:
-      type: object
-      properties:
-        nombre: { type: string }
-        monto: { type: number, format: float }
-        tipo: { type: string, description: 'ingreso o gasto' }
-        periodo: { type: string, description: Nombre de la frecuencia (ej. Mensual). }
-        categoria: { type: string, description: Nombre de la categoría (ej. Suscripciones). }
-        id_cuenta: { type: integer, description: ID de la cuenta donde se aplicará el pago. }
-        tipo_pago: { type: string, description: Nombre del TipoPago. }
-        # Campos de recurrencia avanzada (opcionales)
-        fecha_inicio: { type: string, format: date, description: Fecha del primer pago. }
-        intervalo: { type: integer, default: 1 }
-        fin_tipo: { type: string, enum: [NUNCA, FECHA, CONTEO], default: NUNCA }
-        idUsuario: { type: integer, description: ID del usuario propietario del pago. }
-      required: [nombre, monto, tipo, periodo, categoria, id_cuenta, tipo_pago, idUsuario]
-
-    PagoPlanificadoCreateResponse:
-      type: object
-      properties:
-        success: { type: boolean }
-        message: { type: string }
-        data: { type: object, properties: { id: { type: integer, description: ID del pago planificado creado. } } }
-        error: { nullable: true }
-
-    RegistroItem:
-      type: object
-      properties:
-        id: { type: integer }
-        date: { type: string, format: date }
-        dateTime: { type: string, format: date-time }
-        amount: { type: number, format: float }
-        type: { type: string, enum: [ingreso, gasto] }
-        category: { type: string }
-        account: { type: string }
-        subtitle: { type: string }
-
-    RegistroListResponse:
-      type: object
-      properties:
-        success: { type: boolean }
-        message: { type: string }
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/RegistroItem'
-        error: { nullable: true }
-
-    RegistroResponse:
-      type: object
-      properties:
-        success: { type: boolean }
-        message: { type: string }
-        data:
-          type: object # Puede ser RegistroItem o un objeto con ID/saldo
-        error: { nullable: true }
-
-    RegistroCreateRequest:
-      type: object
-      properties:
-        idUsuario: { type: integer }
-        idCuenta: { type: integer }
-        idCategoria: { type: integer }
-        idTipoTransaccion: { type: integer }
-        monto: { type: number, format: float }
-        fechaHora: { type: string, format: date-time, nullable: true }
-      required: [idUsuario, idCuenta, idCategoria, idTipoTransaccion, monto]
-
-    DashboardSummaryResponse:
-      type: object
-      properties:
-        success: { type: boolean }
-        message: { type: string }
-        data:
-          type: object
-          properties:
-            period: { type: string }
-            total_spent: { type: number }
-            top_categories:
-              type: array
-              items:
-                type: object
-                properties:
-                  categoria: { type: string }
-                  monto: { type: number }
-                  porcentaje: { type: number }
-            trend:
-              type: object
-              properties:
-                message: { type: string }
-        error: { nullable: true }
-
-    TotalBalanceResponse:
-      type: object
-      properties:
-
-    TwoFactorRequest:
-      type: object
-      properties:
-        correo: { type: string }
-
-    ErrorResponse:
-      type: object
-      properties:
-        status: { type: string }
-        message: { type: string }
-        detalle: { type: string }
-
-    #######################################
-    # PAGOS PLANIFICADOS
-    #######################################
-    CatalogoItem:
-      type: object
-      properties:
-        id: { type: integer, description: ID interno de la tabla de catálogo. }
-        nombre: { type: string, description: Nombre a mostrar en el frontend. }
-      required: [id, nombre]
-
-    CuentaItem:
-      type: object
-      properties:
-        id: { type: integer }
-        name: { type: string }
-        amount: { type: number, format: float }
-        currency: { type: string }
-        type: { type: string }
-
-    CuentasListResponse:
-      type: object
-      properties:
-        success: { type: boolean }
-        message: { type: string }
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/CuentaItem'
-        error: { nullable: true }
-
-    CuentaResponse:
-      type: object
-      properties:
-        success: { type: boolean }
-        message: { type: string }
-        data:
-          $ref: '#/components/schemas/CuentaItem'
-        error: { nullable: true }
-
-    CuentaCreateRequest:
-      type: object
-      properties:
-        nombre: { type: string }
-        saldo: { type: number }
-        idUsuario: { type: integer }
-        codeMoneda: { type: string }
-        tipoCuenta: { type: string }
-      required: [nombre, idUsuario]
-
-    CatalogosResponse:
-      type: object
-      properties:
-        success: { type: boolean }
-        message: { type: string }
-        data:
-          type: object
-          properties:
-            tipos_transaccion: { type: array, description: Lista de Ingreso/Gasto., items: { $ref: '#/components/schemas/CatalogoItem' } }
-            frecuencias: { type: array, description: Lista de períodos (Mensual, Anual)., items: { $ref: '#/components/schemas/CatalogoItem' } }
-            categorias: { type: array, description: Lista de categorías definidas por el usuario., items: { $ref: '#/components/schemas/CatalogoItem' } }
-            tipos_pago: { type: array, description: Lista de tipos de pago., items: { $ref: '#/components/schemas/CatalogoItem' } }
-            cuentas: { type: array, description: Cuentas del usuario., items: { $ref: '#/components/schemas/CuentaItem' } }
-        error: { nullable: true }
-
-    PagoPlanificadoItem:
-      type: object
-      properties:
-        id: { type: integer }
-        nombre: { type: string }
-        monto: { type: number, format: float }
-        tipo: { type: string, enum: [ingreso, gasto] }
-        periodo: { type: string, description: Frecuencia (ej. Mensual). }
-        categoria: { type: string, description: Nombre de la categoría. }
-        proximaFecha: { type: string, format: date, description: Fecha del siguiente pago. }
-      required: [id, nombre, monto, tipo, periodo, proximaFecha]
-
-    PagoPlanificadoListResponse:
-      type: object
-      properties:
-        success: { type: boolean }
-        message: { type: string }
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/PagoPlanificadoItem'
-        error: { nullable: true }
-
-    PagoPlanificadoCreateRequest:
-      type: object
-      properties:
-        nombre: { type: string }
-        monto: { type: number, format: float }
-        tipo: { type: string, description: 'ingreso o gasto' }
-        periodo: { type: string, description: Nombre de la frecuencia (ej. Mensual). }
-        categoria: { type: string, description: Nombre de la categoría (ej. Suscripciones). }
-        id_cuenta: { type: integer, description: ID de la cuenta donde se aplicará el pago. }
-        tipo_pago: { type: string, description: Nombre del TipoPago. }
-        # Campos de recurrencia avanzada (opcionales)
-        fecha_inicio: { type: string, format: date, description: Fecha del primer pago. }
-        intervalo: { type: integer, default: 1 }
-        fin_tipo: { type: string, enum: [NUNCA, FECHA, CONTEO], default: NUNCA }
-        idUsuario: { type: integer, description: ID del usuario propietario del pago. }
-      required: [nombre, monto, tipo, periodo, categoria, id_cuenta, tipo_pago, idUsuario]
-
-    PagoPlanificadoCreateResponse:
-      type: object
-      properties:
-        success: { type: boolean }
-        message: { type: string }
-        data: { type: object, properties: { id: { type: integer, description: ID del pago planificado creado. } } }
-        error: { nullable: true }
-
-    RegistroItem:
-      type: object
-      properties:
-        id: { type: integer }
-        date: { type: string, format: date }
-        dateTime: { type: string, format: date-time }
-        amount: { type: number, format: float }
-        type: { type: string, enum: [ingreso, gasto] }
-        category: { type: string }
-        account: { type: string }
-        subtitle: { type: string }
-
-    RegistroListResponse:
-      type: object
-      properties:
-        success: { type: boolean }
-        message: { type: string }
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/RegistroItem'
-        error: { nullable: true }
-
-    RegistroResponse:
-      type: object
-      properties:
-        success: { type: boolean }
-        message: { type: string }
-        data:
-          type: object # Puede ser RegistroItem o un objeto con ID/saldo
-        error: { nullable: true }
-
-    RegistroCreateRequest:
-      type: object
-      properties:
-        idUsuario: { type: integer }
-        idCuenta: { type: integer }
-        idCategoria: { type: integer }
-        idTipoTransaccion: { type: integer }
-        monto: { type: number, format: float }
-        fechaHora: { type: string, format: date-time, nullable: true }
-      required: [idUsuario, idCuenta, idCategoria, idTipoTransaccion, monto]
-
-    DashboardSummaryResponse:
-      type: object
-      properties:
-        success: { type: boolean }
-        message: { type: string }
-        data:
-          type: object
-          properties:
-            period: { type: string }
-            total_spent: { type: number }
-            top_categories:
-              type: array
-              items:
-                type: object
-                properties:
-                  categoria: { type: string }
-                  monto: { type: number }
-                  porcentaje: { type: number }
-            trend:
-              type: object
-              properties:
-                message: { type: string }
-        error: { nullable: true }
-
-    TotalBalanceResponse:
-      type: object
-      properties:
-        success: { type: boolean }
-        message: { type: string }
-        data:
-          type: object
-          properties:
-            user_id: { type: integer }
-            total_balance: { type: number }
-        error: { nullable: true }
-
-    TwoFactorResponse:
-      type: object
-      properties:
-        success: { type: boolean }
-        message: { type: string }
-        data:
-          type: object
-          properties:
-            codigo_fake_para_testing: { type: string }
-        error: { nullable: true }
-
-    ResetPasswordResponse:
-      type: object
-      properties:
     CuentaItem:
       type: object
       properties:
