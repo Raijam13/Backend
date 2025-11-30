@@ -10,7 +10,9 @@ class PerfilController < Sinatra::Base
     content_type :json
   end
 
-  # Obtener perfil por ID
+  # ---------------------------------------------------------
+  # GET: Obtener perfil por ID
+  # ---------------------------------------------------------
   get '/perfil/:id' do
     id = params['id']
     usuario = Usuario.find_by_id(id)
@@ -25,7 +27,9 @@ class PerfilController < Sinatra::Base
           nombres: usuario['nombres'],
           apellidos: usuario['apellidos'],
           correo: usuario['correo'],
-          imagen_perfil: usuario['imagen_perfil'] # incluir imagen si existe
+          imagen_perfil: usuario['imagen_perfil'],
+          fecha_nacimiento: usuario['fecha_nacimiento'],
+          genero: usuario['genero']
         }
       }.to_json
     else
@@ -33,7 +37,9 @@ class PerfilController < Sinatra::Base
     end
   end
 
-  # Actualizar perfil parcial
+  # ---------------------------------------------------------
+  # PUT: Actualizar perfil parcial
+  # ---------------------------------------------------------
   put '/perfil/:id' do
     begin
       id = params['id']
@@ -42,7 +48,8 @@ class PerfilController < Sinatra::Base
       usuario = Usuario.find_by_id(id)
       halt 404, { status: 'error', message: 'Usuario no encontrado' }.to_json unless usuario
 
-      campos_permitidos = %w[nombres apellidos correo contraseña]
+      # Campos permitidos para actualizar
+      campos_permitidos = %w[nombres apellidos correo contraseña fecha_nacimiento genero]
       data_actualizar = payload.select { |k, _| campos_permitidos.include?(k) }
 
       if data_actualizar.empty?
@@ -61,7 +68,9 @@ class PerfilController < Sinatra::Base
           nombres: usuario_actualizado['nombres'],
           apellidos: usuario_actualizado['apellidos'],
           correo: usuario_actualizado['correo'],
-          imagen_perfil: usuario_actualizado['imagen_perfil']
+          imagen_perfil: usuario_actualizado['imagen_perfil'],
+          fecha_nacimiento: usuario_actualizado['fecha_nacimiento'],
+          genero: usuario_actualizado['genero']
         }
       }.to_json
 
@@ -74,14 +83,15 @@ class PerfilController < Sinatra::Base
     end
   end
 
-  # Actualizar imagen de perfil
+  # ---------------------------------------------------------
+  # PUT: Actualizar imagen de perfil
+  # ---------------------------------------------------------
   put '/perfil/:id/imagen' do
     begin
       id = params['id']
       usuario = Usuario.find_by_id(id)
       halt 404, { status: 'error', message: 'Usuario no encontrado' }.to_json unless usuario
 
-      # Validar archivo
       if params[:imagen].nil?
         halt 400, { status: 'error', message: 'No se envió ninguna imagen' }.to_json
       end
@@ -89,14 +99,11 @@ class PerfilController < Sinatra::Base
       imagen = params[:imagen][:tempfile]
       nombre_archivo = params[:imagen][:filename]
 
-      # Crear carpeta si no existe
       FileUtils.mkdir_p('public/uploads')
 
-      # Generar nombre único
       ruta_archivo = "public/uploads/#{Time.now.to_i}_#{nombre_archivo}"
       File.open(ruta_archivo, 'wb') { |f| f.write(imagen.read) }
 
-      # Guardar ruta relativa en la BD usando método específico
       url_imagen = "/uploads/#{File.basename(ruta_archivo)}"
       Usuario.update_imagen_perfil(id, url_imagen)
 
