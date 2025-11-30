@@ -1,6 +1,7 @@
 require 'sinatra'
 require 'sinatra/json'
 require_relative './database'
+require_relative './helpers/generic_response'
 # Controllers are loaded dynamically from the controllers/ folder
 
 # Aquí se cargarán los controladores desde la carpeta controllers

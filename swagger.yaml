@@ -16,6 +16,13 @@ paths:
     get:
       tags: [Planificacion]
       summary: Obtener todas las listas de selección (Frecuencias, Categorías, Cuentas)
+      parameters:
+        - in: query
+          name: user_id
+          required: true
+          schema:
+            type: integer
+            description: ID del usuario para filtrar sus cuentas
       responses:
         '200':
           description: Catálogos obtenidos correctamente
@@ -32,6 +39,13 @@ paths:
     get:
       tags: [Planificacion]
       summary: Listar pagos planificados del usuario
+      parameters:
+        - in: query
+          name: user_id
+          required: true
+          schema:
+            type: integer
+            description: ID del usuario para filtrar sus pagos
       responses:
         '200':
           description: Pagos obtenidos correctamente
@@ -107,6 +121,12 @@ paths:
           required: true
           schema:
             type: integer
+        - in: query
+          name: user_id
+          required: true
+          schema:
+            type: integer
+            description: ID del usuario para verificar propiedad
       responses:
         '200':
           description: Pago eliminado
@@ -536,7 +556,8 @@ components:
         fecha_inicio: { type: string, format: date, description: Fecha del primer pago. }
         intervalo: { type: integer, default: 1 }
         fin_tipo: { type: string, enum: [NUNCA, FECHA, CONTEO], default: NUNCA }
-      required: [nombre, monto, tipo, periodo, categoria, id_cuenta, tipo_pago]
+        idUsuario: { type: integer, description: ID del usuario propietario del pago. }
+      required: [nombre, monto, tipo, periodo, categoria, id_cuenta, tipo_pago, idUsuario]
 
     PagoPlanificadoCreateResponse:
       type: object

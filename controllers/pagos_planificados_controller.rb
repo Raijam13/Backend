@@ -1,10 +1,14 @@
 require 'sinatra/base'
 require 'sinatra/json'
+require_relative '../models/pago_planificado'
+require_relative '../models/catalogos'
+require_relative '../helpers/generic_response'
 
 class PagosPlanificadosController < Sinatra::Base
+  helpers GenericResponse
+
   before do
     content_type :json
-    @id_usuario = 1
   end
 
   ############################################
@@ -12,26 +16,22 @@ class PagosPlanificadosController < Sinatra::Base
   ############################################
   get '/pagos-planificados/catalogos' do
     begin
-      tipos_trans = DB.execute("SELECT id, nombre FROM TipoTransaccion")
-      frecuencias = DB.execute("SELECT id, nombre FROM Frecuencia")
-      categorias  = DB.execute("SELECT id, nombre FROM Categoria")
-      tipos_pago  = DB.execute("SELECT id, nombre FROM TipoPago")
-      cuentas     = DB.execute("SELECT id, nombre, saldo, idMoneda FROM Cuenta WHERE idUsuario = ?", [@id_usuario])
+      user_id = params['user_id']
+      if user_id.nil?
+        return generic_response(false, "El parámetro user_id es obligatorio", nil, nil, 400)
+      end
 
-      json({
-        success: true,
-        message: "Catálogos obtenidos correctamente",
-        data: {
-          tipos_transaccion: tipos_trans,
-          frecuencias: frecuencias,
-          categorias: categorias,
-          tipos_pago: tipos_pago,
-          cuentas: cuentas
-        }
-      })
+      data = {
+        tipos_transaccion: TipoTransaccion.all,
+        frecuencias: Frecuencia.all,
+        categorias: Categoria.all,
+        tipos_pago: TipoPago.all,
+        cuentas: Cuenta.find_by_user(user_id)
+      }
+
+      generic_response(true, "Catálogos obtenidos correctamente", data)
     rescue => e
-      status 500
-      json success: false, message: "Error al obtener catálogos", error: e.message
+      generic_response(false, "Error al obtener catálogos", nil, e.message, 500)
     end
   end
 
@@ -40,26 +40,19 @@ class PagosPlanificadosController < Sinatra::Base
   ############################################
   get '/pagos-planificados' do
     begin
-      rows = DB.execute(<<~SQL)
-        SELECT
-          p.id,
-          p.nombre,
-          p.monto,
-          tt.nombre AS tipo,
-          f.nombre  AS periodo,
-          c.nombre  AS categoria,
-          p.fechaInicio AS proximaFecha
-        FROM PagoPlanificado p
-        JOIN Frecuencia f ON p.idFrecuencia = f.id
-        JOIN Categoria  c ON p.idCategoria = c.id
-        JOIN TipoTransaccion tt ON p.idTipoTransaccion = tt.id
-        WHERE p.idUsuario = #{@id_usuario};
-      SQL
+      user_id = params['user_id']
+      if user_id.nil?
+        return generic_response(false, "El parámetro user_id es obligatorio", nil, nil, 400)
+      end
 
-      json success: true, message: "Pagos obtenidos", data: rows
+      pagos = PagoPlanificado.all_by_user(user_id)
+      
+      # Mapeo para asegurar consistencia con el frontend si es necesario
+      # El modelo ya devuelve: id, nombre, monto, tipo, periodo, categoria, fechaInicio, intervalo
+      
+      generic_response(true, "Pagos obtenidos correctamente", pagos)
     rescue => e
-      status 500
-      json success: false, message: "Error al listar", error: e.message
+      generic_response(false, "Error al listar pagos planificados", nil, e.message, 500)
     end
   end
 
@@ -67,127 +60,119 @@ class PagosPlanificadosController < Sinatra::Base
   # 3) CREAR PAGO PLANIFICADO
   ############################################
   post '/pagos-planificados' do
-    body = JSON.parse(request.body.read) rescue {}
-
-    required = %w[nombre monto tipo periodo categoria id_cuenta tipo_pago]
-    missing = required.select { |k| !body.key?(k) }
-
-    if !missing.empty?
-      status 400
-      return json({ success: false, message: "Faltan campos: #{missing.join(', ')}" })
-    end
-
     begin
-      freq = DB.execute("SELECT id FROM Frecuencia WHERE nombre = ?", [body["periodo"]]).first
-      cat  = DB.execute("SELECT id FROM Categoria WHERE nombre = ?", [body["categoria"]]).first
-      tipo = DB.execute("SELECT id FROM TipoTransaccion WHERE nombre = ?", [body["tipo"]]).first
-      tpago = DB.execute("SELECT id FROM TipoPago WHERE nombre = ?", [body["tipo_pago"]]).first
+      body = JSON.parse(request.body.read)
+      
+      # Validar campos obligatorios
+      required = %w[nombre monto tipo periodo categoria id_cuenta tipo_pago idUsuario]
+      missing = required.select { |k| !body.key?(k) || body[k].nil? }
 
-      idFrecuencia = freq&.dig("id")
-      idCategoria  = cat&.dig("id")
-      idTipoTrans  = tipo&.dig("id")
-      idTipoPago   = tpago&.dig("id")
-
-      raise "Frecuencia no válida" unless idFrecuencia
-      raise "Categoría no válida"  unless idCategoria
-      raise "Tipo transacción no válido" unless idTipoTrans
-      raise "Tipo pago no válido" unless idTipoPago
-
-      sql = <<~SQL
-        INSERT INTO PagoPlanificado
-        (idUsuario, nombre, monto, idTipoTransaccion, idFrecuencia, idCategoria, idTipoPago, idCuenta, fechaInicio, intervalo, finTipo)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      SQL
-
-      DB.execute(sql, [
-        @id_usuario,
-        body["nombre"],
-        body["monto"],
-        idTipoTrans,
-        idFrecuencia,
-        idCategoria,
-        idTipoPago,
-        body["id_cuenta"],
-        body["fecha_inicio"],
-        body["intervalo"] || 1,
-        body["fin_tipo"] || "NUNCA"
-      ])
-
-      id = DB.execute("SELECT last_insert_rowid() AS id").first["id"]
-
-      json success: true, message: "Pago creado", data: { id: id }
-
-    rescue => e
-      status 500
-      json success: false, message: "Error al crear pago", error: e.message
-    end
-  end
-
-  ############################################
-  # 4) ACTUALIZAR
-  ############################################
-  put '/pagos-planificados/:id' do
-    id = params[:id]
-    body = JSON.parse(request.body.read) rescue {}
-
-    begin
-      existing = DB.execute("SELECT * FROM PagoPlanificado WHERE id = ?", [id])
-      if existing.empty?
-        status 404
-        return json({ success: false, message: "Pago planificado no encontrado" })
+      if !missing.empty?
+        return generic_response(false, "Faltan campos obligatorios: #{missing.join(', ')}", nil, nil, 400)
       end
 
-      freq = DB.execute("SELECT id FROM Frecuencia WHERE nombre = ?", [body["periodo"]]).first
-      cat  = DB.execute("SELECT id FROM Categoria WHERE nombre = ?", [body["categoria"]]).first
-      tipo = DB.execute("SELECT id FROM TipoTransaccion WHERE nombre = ?", [body["tipo"]]).first
-      tpago = DB.execute("SELECT id FROM TipoPago WHERE nombre = ?", [body["tipo_pago"]]).first
+      # Validar existencia de catálogos (Búsqueda por nombre)
+      id_frecuencia = Frecuencia.find_id_by_nombre(body["periodo"])
+      id_categoria  = Categoria.find_id_by_nombre(body["categoria"])
+      id_tipo_trans = TipoTransaccion.find_id_by_nombre(body["tipo"])
+      id_tipo_pago  = TipoPago.find_id_by_nombre(body["tipo_pago"])
 
-      sql = <<~SQL
-        UPDATE PagoPlanificado
-        SET nombre = ?, monto = ?, idTipoTransaccion = ?, idFrecuencia = ?, idCategoria = ?, idTipoPago = ?, idCuenta = ?, fechaInicio = ?, intervalo = ?, finTipo = ?
-        WHERE id = ?
-      SQL
+      unless id_frecuencia && id_categoria && id_tipo_trans && id_tipo_pago
+        return generic_response(false, "Datos de catálogo inválidos (periodo, categoria, tipo o tipo_pago incorrectos)", nil, nil, 400)
+      end
 
-      DB.execute(sql, [
-        body["nombre"],
-        body["monto"],
-        tipo&.dig("id"),
-        freq&.dig("id"),
-        cat&.dig("id"),
-        tpago&.dig("id"),
-        body["id_cuenta"],
-        body["fecha_inicio"],
-        body["intervalo"] || 1,
-        body["fin_tipo"] || "NUNCA",
-        id
-      ])
+      # Preparar datos para el modelo
+      data = {
+        nombre: body["nombre"],
+        monto: body["monto"],
+        idCuenta: body["id_cuenta"],
+        idUsuario: body["idUsuario"],
+        idCategoria: id_categoria,
+        idTipoTransaccion: id_tipo_trans,
+        idFrecuencia: id_frecuencia,
+        intervalo: body["intervalo"] || 1,
+        fechaInicio: body["fecha_inicio"], # Asegurarse que el front mande fecha_inicio
+        idTipoPago: id_tipo_pago
+      }
 
-      json success: true, message: "Pago actualizado", data: { id: id }
+      new_id = PagoPlanificado.create(data)
 
+      generic_response(true, "Pago planificado creado exitosamente", { id: new_id }, nil, 201)
+
+    rescue JSON::ParserError
+      generic_response(false, "JSON inválido", nil, nil, 400)
     rescue => e
-      status 500
-      json success: false, message: "Error al actualizar", error: e.message
+      generic_response(false, "Error al crear pago planificado", nil, e.message, 500)
     end
   end
 
-  delete '/pagos-planificados/:id' do
-    id = params[:id]
-
+  ############################################
+  # 4) ACTUALIZAR PAGO PLANIFICADO
+  ############################################
+  put '/pagos-planificados/:id' do
     begin
-        existing = DB.execute("SELECT * FROM PagoPlanificado WHERE id = ?", [id])
-        if existing.empty?
-        status 404
-        return json({ success: false, message: "Pago planificado no encontrado" })
-        end
+      id = params[:id]
+      body = JSON.parse(request.body.read)
+      
+      # Validamos que venga el idUsuario para seguridad básica (o verificación de propiedad)
+      if body["idUsuario"].nil?
+        return generic_response(false, "El idUsuario es obligatorio para verificar propiedad", nil, nil, 400)
+      end
 
-        DB.execute("DELETE FROM PagoPlanificado WHERE id = ?", [id])
+      # Validar existencia de catálogos
+      id_frecuencia = Frecuencia.find_id_by_nombre(body["periodo"])
+      id_categoria  = Categoria.find_id_by_nombre(body["categoria"])
+      id_tipo_trans = TipoTransaccion.find_id_by_nombre(body["tipo"])
+      id_tipo_pago  = TipoPago.find_id_by_nombre(body["tipo_pago"])
 
-        json success: true, message: "Pago planificado eliminado", data: { id: id }
+      unless id_frecuencia && id_categoria && id_tipo_trans && id_tipo_pago
+        return generic_response(false, "Datos de catálogo inválidos", nil, nil, 400)
+      end
 
-        rescue => e
-            status 500
-            json success: false, message: "Error al eliminar", error: e.message
-        end
+      data = {
+        nombre: body["nombre"],
+        monto: body["monto"],
+        idCuenta: body["id_cuenta"],
+        idCategoria: id_categoria,
+        idTipoTransaccion: id_tipo_trans,
+        idFrecuencia: id_frecuencia,
+        intervalo: body["intervalo"] || 1,
+        fechaInicio: body["fecha_inicio"],
+        idTipoPago: id_tipo_pago
+      }
+
+      PagoPlanificado.update(id, body["idUsuario"], data)
+
+      generic_response(true, "Pago planificado actualizado correctamente", { id: id })
+
+    rescue JSON::ParserError
+      generic_response(false, "JSON inválido", nil, nil, 400)
+    rescue => e
+      generic_response(false, "Error al actualizar pago planificado", nil, e.message, 500)
     end
+  end
+
+  ############################################
+  # 5) ELIMINAR PAGO PLANIFICADO
+  ############################################
+  delete '/pagos-planificados/:id' do
+    begin
+      id = params[:id]
+      # Necesitamos el user_id para asegurar que borra SU pago. 
+      # Lo ideal sería recibirlo por query param o body. 
+      # Por consistencia con GET, usaremos query param 'user_id'
+      user_id = params['user_id']
+
+      if user_id.nil?
+        return generic_response(false, "El parámetro user_id es obligatorio", nil, nil, 400)
+      end
+
+      PagoPlanificado.delete(id, user_id)
+
+      generic_response(true, "Pago planificado eliminado correctamente", { id: id })
+    rescue => e
+      generic_response(false, "Error al eliminar pago planificado", nil, e.message, 500)
+    end
+  end
 
 end
