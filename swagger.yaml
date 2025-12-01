@@ -502,6 +502,110 @@ paths:
               schema:
                 $ref: '#/components/schemas/ResetPasswordResponse'
 
+  ############################################
+  # PRESUPUESTOS
+  ############################################
+  /presupuestos/catalogos:
+    get:
+      tags: [Presupuestos]
+      summary: Obtener catálogos para presupuestos
+      parameters:
+        - in: query
+          name: user_id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Catálogos obtenidos correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresupuestoCatalogosResponse'
+
+  /presupuestos:
+    get:
+      tags: [Presupuestos]
+      summary: Listar presupuestos del usuario
+      parameters:
+        - in: query
+          name: user_id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Presupuestos obtenidos correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresupuestoListResponse'
+    post:
+      tags: [Presupuestos]
+      summary: Crear nuevo presupuesto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresupuestoCreateRequest'
+      responses:
+        '201':
+          description: Presupuesto creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresupuestoCreateResponse'
+
+  /presupuestos/{id}:
+    get:
+      tags: [Presupuestos]
+      summary: Obtener detalle de un presupuesto
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Detalle del presupuesto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresupuestoResponse'
+        '404':
+          description: Presupuesto no encontrado
+    put:
+      tags: [Presupuestos]
+      summary: Actualizar presupuesto
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresupuestoCreateRequest'
+      responses:
+        '200':
+          description: Presupuesto actualizado
+    delete:
+      tags: [Presupuestos]
+      summary: Eliminar presupuesto
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: user_id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Presupuesto eliminado
+
 components:
   schemas:
 
@@ -832,4 +936,89 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CatalogoItem'
+        error: { nullable: true }
+
+    PresupuestoItem:
+      type: object
+      properties:
+        id: { type: integer }
+        nombre: { type: string }
+        monto: { type: number }
+        notificarExceso: { type: integer }
+        idCuenta: { type: integer }
+        idUsuario: { type: integer }
+        idPeriodoPresupuesto: { type: integer }
+        idCategoria: { type: integer }
+        categoria: { type: string }
+        cuenta: { type: string }
+        periodo: { type: string }
+
+    PresupuestoListResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PresupuestoItem'
+        error: { nullable: true }
+
+    PresupuestoResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+        data:
+          $ref: '#/components/schemas/PresupuestoItem'
+        error: { nullable: true }
+
+    PresupuestoCreateRequest:
+      type: object
+      properties:
+        nombre: { type: string }
+        monto: { type: number }
+        periodo: { type: string }
+        user_id: { type: integer }
+        id_categoria: { type: integer }
+        id_cuenta: { type: integer }
+        notificar_exceso: { type: boolean }
+      required: [nombre, monto, periodo, user_id]
+
+    PresupuestoCreateResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+        data:
+          type: object
+          properties:
+            id: { type: integer }
+        error: { nullable: true }
+
+    PresupuestoCatalogosResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+        data:
+          type: object
+          properties:
+            categorias:
+              type: array
+              items:
+                $ref: '#/components/schemas/CatalogoItem'
+            periodos:
+              type: array
+              items:
+                $ref: '#/components/schemas/CatalogoItem'
+            cuentas:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: integer }
+                  nombre: { type: string }
+                  saldo: { type: number }
+                  idMoneda: { type: integer }
         error: { nullable: true }

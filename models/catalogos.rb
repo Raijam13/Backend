@@ -13,6 +13,15 @@ class Frecuencia
   end
 end
 
+class PeriodoPresupuesto
+  def self.all
+    CatalogoHelper.list_all('PeriodoPresupuesto')
+  end
+  def self.find_id_by_nombre(nombre)
+    CatalogoHelper.find_id_by_nombre('PeriodoPresupuesto', nombre)
+  end
+end
+
 class Categoria
   def self.all
     CatalogoHelper.list_all('Categoria') # Busca en la tabla Categoria

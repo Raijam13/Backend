@@ -30,13 +30,14 @@ class RegistrosController < Sinatra::Base
         fecha = r['fechaHora'].split(' ')[0] rescue r['fechaHora']
         {
           id: r['id'],
-          date: fecha,
+          date: fecha || "2024-01-01",
           dateTime: r['fechaHora'],
-          amount: r['monto'],
-          type: r['tipo'],
-          category: r['categoria'],
-          account: r['cuenta'],
-          subtitle: "#{r['categoria']} • #{r['cuenta']}"
+          amount: r['monto'] || 0.0,
+          type: r['tipo'] || "Desconocido",
+          category: r['categoria'] || "Sin categoría",
+          account: r['cuenta'] || "Sin cuenta",
+          subtitle: "#{r['categoria'] || 'Sin categoría'} • #{r['cuenta'] || 'Sin cuenta'}",
+          color: 4284572001 # Default color (Gris)
         }
       end
 
@@ -56,12 +57,14 @@ class RegistrosController < Sinatra::Base
         fecha = registro['fechaHora'].split(' ')[0] rescue registro['fechaHora']
         resultado = {
           id: registro['id'],
-          date: fecha,
+          date: fecha || "2024-01-01",
           dateTime: registro['fechaHora'],
-          amount: registro['monto'],
-          type: registro['tipo'],
-          category: registro['categoria'],
-          account: registro['cuenta'],
+          amount: registro['monto'] || 0.0,
+          type: registro['tipo'] || "Desconocido",
+          category: registro['categoria'] || "Sin categoría",
+          account: registro['cuenta'] || "Sin cuenta",
+          subtitle: "#{registro['categoria'] || 'Sin categoría'} • #{registro['cuenta'] || 'Sin cuenta'}",
+          color: 4284572001, # Default color
           idCuenta: registro['idCuenta'],
           idCategoria: registro['idCategoria'],
           idTipoTransaccion: registro['idTipoTransaccion'],
