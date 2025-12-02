@@ -112,6 +112,10 @@ class RegistrosController < Sinatra::Base
         return generic_response(false, 'Tipo de transacción no válido', nil, nil, 400)
       end
 
+      # Variables para capturar resultados
+      id_registro = nil
+      nuevo_saldo = nil
+      
       # Transacción DB
       DB.transaction do
         # 1. Insertar registro
@@ -125,17 +129,18 @@ class RegistrosController < Sinatra::Base
           nuevo_saldo = saldo_actual - monto.to_f
         end
         Cuenta.update_saldo(id_cuenta, nuevo_saldo)
-
-        data = {
-          id: id_registro,
-          monto: monto,
-          tipo: tipo_nombre,
-          cuenta: cuenta['nombre'],
-          nuevo_saldo: nuevo_saldo
-        }
-        
-        generic_response(true, 'Registro creado exitosamente', data, nil, 201)
       end
+
+      # Responder después de la transacción
+      data = {
+        id: id_registro,
+        monto: monto,
+        tipo: tipo_nombre,
+        cuenta: cuenta['nombre'],
+        nuevo_saldo: nuevo_saldo
+      }
+      
+      generic_response(true, 'Registro creado exitosamente', data, nil, 201)
 
     rescue JSON::ParserError
       generic_response(false, 'Formato JSON inválido', nil, nil, 400)
